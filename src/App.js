@@ -83,7 +83,7 @@ function stationToShort(name) {
    stations.forEach( (val, k) => {
       const vl = val.toLowerCase();
       const nl = name.toLowerCase();
-      if (vl == nl || vl == nl + ' asema')
+      if (vl === nl || vl === nl + ' asema')
       {
          key = k;
          return;
@@ -100,6 +100,13 @@ function stationToLong(sname) {
    { return s.replace(' asema', ''); }
    else
    { return s; }
+}
+
+/// @return time in HOURS:MINUTES format
+function timeToString(time) {
+   const str = time.toLocaleTimeString();
+   // strip seconds
+   return str.substring(0, str.length-4);
 }
 
 /// React component for displaying all the Trains at a specific stations
@@ -159,9 +166,9 @@ class TrainList extends Component {
          });
    }
 
-   // Table can't render Date type, only strings
    // @todo seems like generating unique indentifiers is hard
-   // @todo Fix the Date formatting
+   // @todo display delayed time
+   // @todo display cancelled trains
    render() {
       return (
       <div className='TrainMain'>
@@ -173,7 +180,6 @@ class TrainList extends Component {
 
       <DirSelector />
 
-      <h3>{stationToLong(this.state.station)}</h3>
       <table className="Train-table">
          <thead>
             <tr>
@@ -189,7 +195,7 @@ class TrainList extends Component {
                <td key={String(train.number)+'number'}>{train.type} {train.number}</td>
                <td key={String(train.number)+'start'}>{stationToLong(train.start)}</td>
                <td key={String(train.number)+'end'}>{stationToLong(train.end)}</td>
-               <td key={String(train.number)+'time'}>{String(train.time)}</td>
+               <td key={String(train.number)+'time'}>{timeToString(train.time)}</td>
             </tr>
          )}
          </tbody>

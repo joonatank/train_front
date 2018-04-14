@@ -55,16 +55,19 @@ class Train {
    // Format we want
    // {TYPE NAME} {START STATION} {END STATION} {ARRIVAL TIME}
    constructor(data, station) {
-      let MAX = data.timeTableRows.length-1;
+      const MAX = data.timeTableRows.length-1;
 
       // find our station
-      let station_time = data.timeTableRows.find( elem => elem.stationShortCode === station);
+      const station_time = data.timeTableRows.find( elem => elem.stationShortCode === station);
       //console.log(station, ' live estimate: ', station_time.liveEstimateTime);
       //console.log(station, ' scheduled : ', station_time.scheduledTime);
+      // @todo time has problems in HKI because the station can appear multiple times
+      //    in the data, it takes old values, we need to check against current time and filter
       // @todo we need to add live estimate if it exists and is different from schedule
       // @todo we need to save two values if estimate is different from scheduled
+      //    have to use a tuple for this, first estimate second real if it exists
       // @todo we need to deal with cancelled trains
-      const time = station_time.scheduledTime;
+      const time = station_time.liveEstimateTime ? station_time.liveEstimateTime : station_time.scheduledTime;
 
       this.type = data.trainType;
       this.number = data.trainNumber;
@@ -138,18 +141,26 @@ class TrainList extends Component {
    handleSubmit(event) {
       console.log('Search submitted: ' + this.state.search_value);
       event.preventDefault();
-      this.findStation();
+      this.findStation(this.state.direction);
    }
 
-   findStation() {
+   // @todo Don't like that this can be called from places where the direction changes
+   //   and places where it doesn't
+   //   also this uses and sets state data, it's way too inconsistent.
+   //   I'd love to only use state data, but that's not possible since we need to call
+   //   this every time the state gets dirty.
+   //   Maybe there is a React callback we can use for it? dunno.
+   //   I'd just rather use my own data types to hold it and use this to dirty the state
+   //   so that React knows to render the component again.
+   findStation(direction) {
 
       const station = stationToShort(this.state.search_value);
       console.log('Finding station: ' + station);
       let query_url;
       // @todo cleanup the query it works but looks horrible
-      if (this.state.direction === 'depart')
+      if (direction === 'depart')
       { query_url = TRAIN_URL + '/' + station + '?arrived_trains=0&arriving_trains=0&departed_trains=0&departing_trains=' + N_RESULTS + '&include_nonstopping=false'; }
-      else if (this.state.direction === 'arrive')
+      else if (direction === 'arrive')
       { query_url = TRAIN_URL + '/' + station + '?arrived_trains=0&arriving_trains=' + N_RESULTS + '&departed_trains=0&departing_trains=0&include_nonstopping=false'; }
       else
       { console.log('ERROR: direction \'' + this.state.direction + '\' is not correct'); }
@@ -186,7 +197,7 @@ class TrainList extends Component {
       // @fixme setState is bad, it doesn't update instantly meaning our
       //    findStation call will be using the old state
       this.setState({ direction: 'depart' });
-      this.findStation();
+      this.findStation('depart');
    }
 
    handleArrivals(e) {
@@ -196,7 +207,7 @@ class TrainList extends Component {
       // @fixme setState is bad, it doesn't update instantly meaning our
       //    findStation call will be using the old state
       this.setState({ direction: 'arrive' });
-      this.findStation();
+      this.findStation('arrive');
    }
 
    // @todo seems like generating unique indentifiers is hard
@@ -204,9 +215,7 @@ class TrainList extends Component {
    // @todo display cancelled trains
    // @todo arrive_text always reads Arrive? or it should read Depart?
    // @todo arrive_text prints old times for Arrivals
-   // @todo doesn't update when clicking the buttons
-   //   This is because the state update is asynchronious, we need to change to function
-   //   variables instead of states where we need fast changes.
+   // @todo buttons need to change styles based on are we looking at arrivals or departures
    render() {
       return (
       <div className='TrainMain'>

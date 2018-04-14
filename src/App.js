@@ -23,6 +23,7 @@ const QUERY_ARRIVAL_URL = TRAIN_URL + '/' + STATION + '?arrived_trains=0&arrivin
 
 // GLOBALS
 // @todo mark as a global (shame we can't final this)
+// (stationShortName, stationName) map
 var stations = new Map();
 
 /// Function to retrieve the station list and create a map for it
@@ -37,19 +38,11 @@ function getStations() {
             }
 
             response.json().then(data => {
-               // Parse JSON
-               // we nee departure time, dest, cancelled
-               // trainNumber, trainType,
-               // departure = timeTableRows[0].scheduledTime
-               // arrival = timeTableRows[MAX].scheduledTime
-               // format
-               // {TYPE NAME} {DEPART STATION} {END STATION} {ARRIVAL TIME}
-               // arrival time is for this station (the one we are searching for
-               // so in the test data HKI (test it with tampere though)
-               console.log('Got station data');
+               // Create a map out of the station data
+               // since we are using a global clear
+               stations = new Map();
                data.map(elem => stations.set(elem.stationShortCode, elem.stationName));
                console.log('Got ', stations.size, ' stations');
-               //return stations;
             });
          }
       )
@@ -97,8 +90,19 @@ class Train {
 
 /// Helpers to handle station name conversion
 function stationToShort(name) {
-   // @todo how to implement reverse search through dictionary, or do we need a second HashMap?
+   var key;
+   stations.forEach( (val, k) => {
+      const vl = val.toLowerCase();
+      const nl = name.toLowerCase();
+      if (vl == nl || vl == nl + ' asema')
+      {
+         key = k;
+         return;
+      }
+   });
+   return key;
 }
+
 function stationToLong(sname) {
    const s = stations.get(sname);
    // Remove asema from names

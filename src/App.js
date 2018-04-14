@@ -13,13 +13,11 @@ const localisation = {
 
 // Constants
 const STATION_URL = 'https://rata.digitraffic.fi/api/v1/metadata/stations';
-const STATION = 'TPE'
 const N_RESULTS = 10
 const TRAIN_URL = 'https://rata.digitraffic.fi/api/v1/live-trains/station'
 
 // Constructred urls
-const QUERY_DEPART_URL = TRAIN_URL + '/' + STATION + '?arrived_trains=0&arriving_trains=0&departed_trains=0&departing_trains=' + N_RESULTS + '&include_nonstopping=false';
-const QUERY_ARRIVAL_URL = TRAIN_URL + '/' + STATION + '?arrived_trains=0&arriving_trains=' + N_RESULTS + '&departed_trains=0&departing_trains=0&include_nonstopping=false';
+//const QUERY_ARRIVAL_URL = TRAIN_URL + '/' + STATION + '?arrived_trains=0&arriving_trains=' + N_RESULTS + '&departed_trains=0&departing_trains=0&include_nonstopping=false';
 
 // GLOBALS
 // @todo mark as a global (shame we can't final this)
@@ -51,15 +49,6 @@ function getStations() {
       });
 }
 
-function Search() {
-   return (
-      <form className="Search-form">
-         <p>{localisation.search_text}</p>
-         <input type="text" name="search" />
-      </form>
-   );
-}
-
 /// Data type for the train data at a specific station
 class Train {
 
@@ -70,8 +59,8 @@ class Train {
 
       // find our station
       let station_time = data.timeTableRows.find( elem => elem.stationShortCode === station);
-      console.log(STATION, ' live estimate: ', station_time.liveEstimateTime);
-      console.log(STATION, ' scheduled : ', station_time.scheduledTime);
+      //console.log(station, ' live estimate: ', station_time.liveEstimateTime);
+      //console.log(station, ' scheduled : ', station_time.scheduledTime);
       // @todo we need to add live estimate if it exists and is different from schedule
       // @todo we need to save two values if estimate is different from scheduled
       // @todo we need to deal with cancelled trains
@@ -119,13 +108,32 @@ class TrainList extends Component {
       super(props);
       this.state = {
          trains: [],
-         station: "HELL"
+         station: "HELL",
+         search_value: ""
       };
+
+      this.handleChange = this.handleChange.bind(this);
+      this.handleSubmit = this.handleSubmit.bind(this);
    }
 
-   // Overload
-   componentDidMount() {
+   handleChange(event) {
+      console.log('Search changed: ' + event.target.value);
+      this.setState({search_value: event.target.value});
+      // @todo try to find a station that matches the new name
+      // then we can find the station without submitting the form (pressing enter)
+   }
 
+   handleSubmit(event) {
+      console.log('Search submitted: ' + this.state.search_value);
+      event.preventDefault();
+      this.findStation();
+   }
+
+   findStation() {
+
+      const station = stationToShort(this.state.search_value);
+      console.log('Finding station: ' + station);
+      const QUERY_DEPART_URL = TRAIN_URL + '/' + station + '?arrived_trains=0&arriving_trains=0&departed_trains=0&departing_trains=' + N_RESULTS + '&include_nonstopping=false';
       fetch(QUERY_DEPART_URL)
          .then(response => {
                if (response.status !== 200) {
@@ -137,12 +145,12 @@ class TrainList extends Component {
 
                   // JSON to Train objects
                   // List of trains, sorted by arrival/departure time.
-                  const tr = data.map( elem => new Train(elem, STATION) );
+                  const tr = data.map( elem => new Train(elem, station) );
                   tr.sort( (a,b) => { return a.time - b.time } );
 
                   // Update our view
                   this.setState({ trains: tr });
-                  this.setState({ station: STATION });
+                  this.setState({ station: station });
                });
             }
          )
@@ -156,7 +164,15 @@ class TrainList extends Component {
    // @todo Fix the Date formatting
    render() {
       return (
-      <div>
+      <div className='TrainMain'>
+
+      <form className="Search-form" onSubmit={this.handleSubmit}>
+         <p>{localisation.search_text}</p>
+         <input type="text" name="search" value={this.state.value} onChange={this.handleChange} />
+      </form>
+
+      <DirSelector />
+
       <h3>{stationToLong(this.state.station)}</h3>
       <table className="Train-table">
          <thead>
@@ -203,11 +219,7 @@ class App extends Component {
            { /*<img src={logo} className="App-logo" alt="logo" />*/}
              <h1 className="App-title">Aseman junatiedot</h1>
            </header>
-        <div className="TrainMain">
-           <Search />
-           <DirSelector />
            <TrainList />
-        </div>
       </div>
     );
   }

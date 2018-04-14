@@ -116,11 +116,16 @@ class TrainList extends Component {
       this.state = {
          trains: [],
          station: "HELL",
-         search_value: ""
+         search_value: "",
+         // @todo should this be an enum?
+         // valid values 'depart', 'arrive'
+         direction: 'depart'
       };
 
       this.handleChange = this.handleChange.bind(this);
       this.handleSubmit = this.handleSubmit.bind(this);
+      this.handleDepartures = this.handleDepartures.bind(this);
+      this.handleArrivals = this.handleArrivals.bind(this);
    }
 
    handleChange(event) {
@@ -140,8 +145,16 @@ class TrainList extends Component {
 
       const station = stationToShort(this.state.search_value);
       console.log('Finding station: ' + station);
-      const QUERY_DEPART_URL = TRAIN_URL + '/' + station + '?arrived_trains=0&arriving_trains=0&departed_trains=0&departing_trains=' + N_RESULTS + '&include_nonstopping=false';
-      fetch(QUERY_DEPART_URL)
+      let query_url;
+      // @todo cleanup the query it works but looks horrible
+      if (this.state.direction === 'depart')
+      { query_url = TRAIN_URL + '/' + station + '?arrived_trains=0&arriving_trains=0&departed_trains=0&departing_trains=' + N_RESULTS + '&include_nonstopping=false'; }
+      else if (this.state.direction === 'arrive')
+      { query_url = TRAIN_URL + '/' + station + '?arrived_trains=0&arriving_trains=' + N_RESULTS + '&departed_trains=0&departing_trains=0&include_nonstopping=false'; }
+      else
+      { console.log('ERROR: direction \'' + this.state.direction + '\' is not correct'); }
+
+      fetch(query_url)
          .then(response => {
                if (response.status !== 200) {
                   console.log('Error: ' + response.status);
@@ -166,9 +179,34 @@ class TrainList extends Component {
          });
    }
 
+   handleDepartures(e) {
+      e.preventDefault();
+      console.log('departures was clicked');
+      // @todo do we need to check that we don't update this needlessly
+      // @fixme setState is bad, it doesn't update instantly meaning our
+      //    findStation call will be using the old state
+      this.setState({ direction: 'depart' });
+      this.findStation();
+   }
+
+   handleArrivals(e) {
+      e.preventDefault();
+      console.log('arrivals was clicked');
+      // @todo do we need to check that we don't update this needlessly
+      // @fixme setState is bad, it doesn't update instantly meaning our
+      //    findStation call will be using the old state
+      this.setState({ direction: 'arrive' });
+      this.findStation();
+   }
+
    // @todo seems like generating unique indentifiers is hard
    // @todo display delayed time
    // @todo display cancelled trains
+   // @todo arrive_text always reads Arrive? or it should read Depart?
+   // @todo arrive_text prints old times for Arrivals
+   // @todo doesn't update when clicking the buttons
+   //   This is because the state update is asynchronious, we need to change to function
+   //   variables instead of states where we need fast changes.
    render() {
       return (
       <div className='TrainMain'>
@@ -178,7 +216,10 @@ class TrainList extends Component {
          <input type="text" name="search" value={this.state.value} onChange={this.handleChange} />
       </form>
 
-      <DirSelector />
+      <div className="DirSelector">
+         <button onClick={this.handleDepartures}>{localisation.departures_text}</button>
+         <button onClick={this.handleArrivals}>{localisation.arrivals_text}</button>
+      </div>
 
       <table className="Train-table">
          <thead>
@@ -205,16 +246,6 @@ class TrainList extends Component {
       </div>
       );
    }
-}
-
-
-function DirSelector() {
-   return (
-      <div className="DirSelector">
-         <a href="?departures" >{localisation.departures_text}</a>
-         <a href="?arrivals" >{localisation.arrivals_text}</a>
-      </div>
-   );
 }
 
 class App extends Component {

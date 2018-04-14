@@ -1,0 +1,62 @@
+/* Contains the full page */
+.TrainApp {
+  /*text-align: center; */
+}
+
+/* Contains everything but the header
+ * TODO these need renaming
+ * */
+.TrainMain {
+   padding: 20px;
+}
+
+.Search-form {
+   padding-bottom: 30px;
+}
+
+input {
+   border-radius: 10px;
+   padding: 20px;
+   width: 200px;
+   height: 8px;
+}
+
+.Train-table {
+   border: 2px solid black;
+   padding: 10px;
+}
+
+/* TODO this is ugly, but can't fix it with vanilla CSS */
+tr, td {
+   padding: 20px;
+}
+
+.DirSelector a {
+   padding: 30px;
+   color: red;
+}
+
+.App-logo {
+  animation: App-logo-spin infinite 20s linear;
+  height: 80px;
+}
+
+.App-header {
+  background-color: green;
+  height: 40px;
+  padding: 20px;
+  color: white;
+}
+
+.App-title {
+  font-size: 1.5em;
+}
+
+.App-intro {
+  font-size: large;
+}
+
+@keyframes App-logo-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

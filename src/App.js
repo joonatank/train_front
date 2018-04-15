@@ -272,8 +272,14 @@ class TrainList extends Component {
       </form>
 
       <div className="DirSelector">
-         <button onClick={this.handleDepartures}>{localisation.departures_text}</button>
-         <button onClick={this.handleArrivals}>{localisation.arrivals_text}</button>
+         <button className={this.direction === 'arrive' ? 'Selected-dir-button' : 'button'}
+            onClick={this.handleArrivals}>
+            {localisation.arrivals_text}
+         </button>
+         <button className={this.direction === 'depart' ? 'Selected-dir-button' : 'button'}
+            onClick={this.handleDepartures}>
+            {localisation.departures_text}
+         </button>
       </div>
 
       <table className="Train-table">
@@ -291,8 +297,6 @@ class TrainList extends Component {
          )}
          </tbody>
       </table>
-      <ul>
-      </ul>
       </div>
       );
    }

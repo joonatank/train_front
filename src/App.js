@@ -1,3 +1,9 @@
+/*  @author Joonatan Kuosa <joonatan.kuosa@gmail.com>
+ *  @date 2018-04-15
+ *
+ *  Under a copyleft, do what you want with it.
+ */
+
 import React, { Component } from 'react';
 import './App.css';
 
@@ -19,19 +25,15 @@ const N_RESULTS = 10;
 const TRAIN_URL = 'https://rata.digitraffic.fi/api/v1/live-trains/station';
 
 // GLOBALS
-// @todo mark as a global (shame we can't final this)
 // (stationShortName, stationName) map
 let g_stations = new Map();
 
 /// Function to retrieve the station list and create a map for it
-/// @todo We want this is a global variable that is intialised at the start
 function getStations() {
-   // @todo move to constants at the top
    fetch(STATION_URL)
       .then(response => {
             if (response.status !== 200) {
                console.log('Error: ' + response.status);
-               return [];
             }
 
             response.json().then(data => {
@@ -43,14 +45,17 @@ function getStations() {
             });
          }
       )
-      .catch(function(err) {
-         console.log('Fetch Error :-S', err);
-      });
+      .catch(err => console.log('Fetch Error :-S', err))
 }
 
 /// Data type for the train data at a specific station
 /// if it's a ghost train (not valid) type == number == null
 /// otherwise all fields != null
+///
+/// @todo
+///     A thing about our ghost trains is that it might be waiting on the station
+///     say we have a `train that arrived two minutes ago, but is leaving in ten.
+///     Of course the cancelled trains that would have been gone 30 minutes ago don't belong here.
 class Train {
 
    // Format we want
@@ -94,8 +99,27 @@ class Train {
 }
 
 /// Helpers to handle station name conversion
+
+/// Returns a list of possibilities
+/// partial matches
+function stationToShortList(name) {
+   let arr = [];
+   g_stations.forEach( (val, k) => {
+      const vl = val.toLowerCase();
+      const nl = name.toLowerCase();
+      const n = Math.min(vl.length, nl.length);
+      if (vl.substring(0, n) === nl.substring(0, n))
+      {
+         arr.push(k);
+      }
+   });
+
+   return arr;
+}
+
+// Exact matches, single return value
 function stationToShort(name) {
-   let key;
+   let key = '';
    g_stations.forEach( (val, k) => {
       const vl = val.toLowerCase();
       const nl = name.toLowerCase();
@@ -105,9 +129,11 @@ function stationToShort(name) {
          return;
       }
    });
+
    return key;
 }
 
+/// Returns the long name matching short (three letter) name
 function stationToLong(sname) {
    const s = g_stations.get(sname);
    // Remove asema from names
@@ -198,6 +224,9 @@ class TrainList extends Component {
       this.search_value = event.target.value;
       // @todo try to find a station that matches the new name
       // then we can find the station without submitting the form (pressing enter)
+      //const options = stationToShortList(this.search_value);
+      // @todo display the list for autocomplete
+      //console.log('Options: ' + options);
    }
 
    /// @todo this runs a search even if we haven't changed any values
@@ -273,17 +302,13 @@ class TrainList extends Component {
    }
 
    // @todo seems like generating unique indentifiers is hard
-   // @todo display cancelled trains
-   // @todo arrive_text always reads Arrive? or it should read Depart?
-   // @todo arrive_text prints old times for Arrivals (this is problem at least in HKI)
-   // @todo buttons need to change styles based on are we looking at arrivals or departures
    render() {
       return (
       <div className='TrainMain'>
 
       <form className="Search-form" onSubmit={this.handleSubmit}>
          <h3>{localisation.search_text}</h3>
-         <input type="search" name="search" value={this.state.value} onChange={this.handleChange} />
+         <input type="search" name="search" onChange={this.handleChange} />
       </form>
 
       <div className="DirSelector">

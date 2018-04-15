@@ -67,6 +67,7 @@ class Train {
       // @todo we need to save two values if estimate is different from scheduled
       //    have to use a tuple for this, first estimate second real if it exists
       // @todo we need to deal with cancelled trains
+      const live_time = station_time.liveEstimateTime;
       const time = station_time.liveEstimateTime ? station_time.liveEstimateTime : station_time.scheduledTime;
 
       this.type = data.trainType;
@@ -77,6 +78,7 @@ class Train {
       this.start = data.timeTableRows[0].stationShortCode;
       this.end = data.timeTableRows[MAX].stationShortCode;
       this.time = new Date(time);
+      this.live_time = new Date(live_time);
    }
 }
 
@@ -110,6 +112,28 @@ function timeToString(time) {
    const str = time.toLocaleTimeString();
    // strip seconds
    return str.substring(0, str.length-4);
+}
+
+/// Display time as a React component
+/// Displayes two times (one with red flag) if they differ, otherwise only one
+/// props:  live (live measurement of train time)
+///         scheduled (sheduled train time)
+function DisplayTime(props)
+{
+   // checking equal on strings not on time (time isn't accurate)
+   // invalid times aren't null, they are NaN
+   const lt = !isNaN(props.live.valueOf()) ? timeToString(props.live) : null;
+   const st = timeToString(props.scheduled);
+
+   return (
+      <div>
+         {(lt && lt !== st
+            ?  <span className='Warning-text'> {lt} <br /> </span>
+            : false
+         )}
+         {st}
+      </div>
+   );
 }
 
 /// React component for displaying all the Trains at a specific stations
@@ -245,7 +269,9 @@ class TrainList extends Component {
                <td key={String(train.number)+'number'}>{train.type} {train.number}</td>
                <td key={String(train.number)+'start'}>{stationToLong(train.start)}</td>
                <td key={String(train.number)+'end'}>{stationToLong(train.end)}</td>
-               <td key={String(train.number)+'time'}>{timeToString(train.time)}</td>
+               <td key={String(train.number)+'time'}>
+                  <DisplayTime live={train.live_time} scheduled={train.time} />
+               </td>
             </tr>
          )}
          </tbody>

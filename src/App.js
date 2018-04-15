@@ -143,11 +143,14 @@ class TrainList extends Component {
       this.state = {
          trains: [],
          station: "HELL",
-         search_value: "",
-         // @todo should this be an enum?
-         // valid values 'depart', 'arrive'
-         direction: 'depart'
       };
+
+      // Local Data: these are not states by design (states async updates caused problems).
+      //
+      // @todo should this be an enum?
+      // valid values 'depart', 'arrive'
+      this.direction = 'depart';
+      this.search_value = '';
 
       this.handleChange = this.handleChange.bind(this);
       this.handleSubmit = this.handleSubmit.bind(this);
@@ -157,28 +160,29 @@ class TrainList extends Component {
 
    handleChange(event) {
       console.log('Search changed: ' + event.target.value);
-      this.setState({search_value: event.target.value});
+      this.search_value = event.target.value;
       // @todo try to find a station that matches the new name
       // then we can find the station without submitting the form (pressing enter)
    }
 
+   /// @todo this runs a search even if we haven't changed any values
    handleSubmit(event) {
-      console.log('Search submitted: ' + this.state.search_value);
+      console.log('Search submitted: ' + this.search_value);
       event.preventDefault();
-      this.findStation(this.state.direction);
+      this.findStation(this.direction, this.search_value);
    }
 
-   // @todo Don't like that this can be called from places where the direction changes
-   //   and places where it doesn't
-   //   also this uses and sets state data, it's way too inconsistent.
-   //   I'd love to only use state data, but that's not possible since we need to call
-   //   this every time the state gets dirty.
-   //   Maybe there is a React callback we can use for it? dunno.
-   //   I'd just rather use my own data types to hold it and use this to dirty the state
-   //   so that React knows to render the component again.
-   findStation(direction) {
+   // Queries the Train data for a specific station and direction from the server
+   // If changed updates the UI
+   //
+   // Design
+   //   Inputs to this method are passed as parameters
+   //   Outputs are saved to React state to trigger a re-render
+   //   Does NOT use object data or React states as an input
+   //   This design was made because React states weren't updated always when this was called.
+   findStation(direction, stationName) {
 
-      const station = stationToShort(this.state.search_value);
+      const station = stationToShort(stationName);
       console.log('Finding station: ' + station);
       let query_url;
       // @todo cleanup the query it works but looks horrible
@@ -187,7 +191,7 @@ class TrainList extends Component {
       else if (direction === 'arrive')
       { query_url = TRAIN_URL + '/' + station + '?arrived_trains=0&arriving_trains=' + N_RESULTS + '&departed_trains=0&departing_trains=0&include_nonstopping=false'; }
       else
-      { console.log('ERROR: direction \'' + this.state.direction + '\' is not correct'); }
+      { console.log('ERROR: direction \'' + direction + '\' is not correct'); }
 
       fetch(query_url)
          .then(response => {
@@ -217,28 +221,29 @@ class TrainList extends Component {
    handleDepartures(e) {
       e.preventDefault();
       console.log('departures was clicked');
-      // @todo do we need to check that we don't update this needlessly
-      // @fixme setState is bad, it doesn't update instantly meaning our
-      //    findStation call will be using the old state
-      this.setState({ direction: 'depart' });
-      this.findStation('depart');
+
+      if (this.direction !== 'depart')
+      {
+         this.direction = 'depart';
+         this.findStation(this.direction, this.search_value);
+      }
    }
 
    handleArrivals(e) {
       e.preventDefault();
       console.log('arrivals was clicked');
-      // @todo do we need to check that we don't update this needlessly
-      // @fixme setState is bad, it doesn't update instantly meaning our
-      //    findStation call will be using the old state
-      this.setState({ direction: 'arrive' });
-      this.findStation('arrive');
+
+      if (this.direction !== 'arrive')
+      {
+         this.direction = 'arrive';
+         this.findStation(this.direction, this.search_value);
+      }
    }
 
    // @todo seems like generating unique indentifiers is hard
-   // @todo display delayed time
    // @todo display cancelled trains
    // @todo arrive_text always reads Arrive? or it should read Depart?
-   // @todo arrive_text prints old times for Arrivals
+   // @todo arrive_text prints old times for Arrivals (this is problem at least in HKI)
    // @todo buttons need to change styles based on are we looking at arrivals or departures
    render() {
       return (
@@ -288,7 +293,6 @@ class App extends Component {
     return (
       <div className="TrainApp">
         <header className="App-header">
-           { /*<img src={logo} className="App-logo" alt="logo" />*/}
              <h1 className="App-title">Aseman junatiedot</h1>
            </header>
            <TrainList />

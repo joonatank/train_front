@@ -148,7 +148,8 @@ function stationToLong(sname) {
 function timeToString(time) {
    const str = time.toLocaleTimeString();
    // strip seconds
-   return str.substring(0, str.length-4);
+   const i = str.lastIndexOf(':');
+   return str.substring(0, i);
 }
 
 /// ------------------------------- REACT ------------------------------------

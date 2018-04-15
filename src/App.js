@@ -308,7 +308,7 @@ class TrainList extends Component {
 
       <form className="Search-form" onSubmit={this.handleSubmit}>
          <h3>{localisation.search_text}</h3>
-         <input type="search" name="search" onChange={this.handleChange} />
+         <input type="text" name="search" autocomplete="off" onChange={this.handleChange} />
       </form>
 
       <div className="DirSelector">

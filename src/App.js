@@ -15,16 +15,13 @@ const localisation = {
 
 // Constants
 const STATION_URL = 'https://rata.digitraffic.fi/api/v1/metadata/stations';
-const N_RESULTS = 10
-const TRAIN_URL = 'https://rata.digitraffic.fi/api/v1/live-trains/station'
-
-// Constructred urls
-//const QUERY_ARRIVAL_URL = TRAIN_URL + '/' + STATION + '?arrived_trains=0&arriving_trains=' + N_RESULTS + '&departed_trains=0&departing_trains=0&include_nonstopping=false';
+const N_RESULTS = 10;
+const TRAIN_URL = 'https://rata.digitraffic.fi/api/v1/live-trains/station';
 
 // GLOBALS
 // @todo mark as a global (shame we can't final this)
 // (stationShortName, stationName) map
-var stations = new Map();
+let g_stations = new Map();
 
 /// Function to retrieve the station list and create a map for it
 /// @todo We want this is a global variable that is intialised at the start
@@ -40,9 +37,9 @@ function getStations() {
             response.json().then(data => {
                // Create a map out of the station data
                // since we are using a global clear
-               stations = new Map();
-               data.map(elem => stations.set(elem.stationShortCode, elem.stationName));
-               console.log('Got ', stations.size, ' stations');
+               g_stations = new Map();
+               data.map(elem => g_stations.set(elem.stationShortCode, elem.stationName));
+               console.log('Got ', g_stations.size, ' stations');
             });
          }
       )
@@ -52,6 +49,8 @@ function getStations() {
 }
 
 /// Data type for the train data at a specific station
+/// if it's a ghost train (not valid) type == number == null
+/// otherwise all fields != null
 class Train {
 
    // Format we want
@@ -60,34 +59,44 @@ class Train {
       const MAX = data.timeTableRows.length-1;
 
       // find our station
-      const station_time = data.timeTableRows.find( elem => elem.stationShortCode === station);
-      //console.log(station, ' live estimate: ', station_time.liveEstimateTime);
-      //console.log(station, ' scheduled : ', station_time.scheduledTime);
-      // @todo time has problems in HKI because the station can appear multiple times
-      //    in the data, it takes old values, we need to check against current time and filter
-      // @todo we need to add live estimate if it exists and is different from schedule
-      // @todo we need to save two values if estimate is different from scheduled
-      //    have to use a tuple for this, first estimate second real if it exists
-      // @todo we need to deal with cancelled trains
-      const live_time = station_time.liveEstimateTime;
-      const time = station_time.liveEstimateTime ? station_time.liveEstimateTime : station_time.scheduledTime;
+      // only includes trains that haven't passed our station yet
+      //    unidentified if it's a ghost train
+      //    handles cricular routes (HKI)
+      const station_time = data.timeTableRows.find( elem => {
+         const et = new Date(elem.liveEstimateTime);
+         const st = new Date(elem.scheduledTime);
+         const max = (isNaN(et.valueOf()) && et > st) ? et : st;
+         return elem.stationShortCode === station
+            && max > new Date();
+      });
 
-      this.type = data.trainType;
-      this.number = data.trainNumber;
-      this.cancelled = data.cancelled;
-      // TODO this method of getting start and end points is really bad for HKI traffic
-      // circular routes which start and end in HKI
-      this.start = data.timeTableRows[0].stationShortCode;
-      this.end = data.timeTableRows[MAX].stationShortCode;
-      this.time = new Date(time);
-      this.live_time = new Date(live_time);
+      // Handling ghost trains
+      if (!station_time)
+      {
+         this.type = null;
+         this.number = null;
+      }
+      else
+      {
+         const live_time = station_time.liveEstimateTime;
+         const time = station_time.liveEstimateTime
+               ? station_time.liveEstimateTime : station_time.scheduledTime;
+
+         this.type = data.trainType;
+         this.number = data.trainNumber;
+         this.cancelled = data.cancelled;
+         this.start = data.timeTableRows[0].stationShortCode;
+         this.end = data.timeTableRows[MAX].stationShortCode;
+         this.time = new Date(time);
+         this.live_time = new Date(live_time);
+      }
    }
 }
 
 /// Helpers to handle station name conversion
 function stationToShort(name) {
-   var key;
-   stations.forEach( (val, k) => {
+   let key;
+   g_stations.forEach( (val, k) => {
       const vl = val.toLowerCase();
       const nl = name.toLowerCase();
       if (vl === nl || vl === nl + ' asema')
@@ -100,7 +109,7 @@ function stationToShort(name) {
 }
 
 function stationToLong(sname) {
-   const s = stations.get(sname);
+   const s = g_stations.get(sname);
    // Remove asema from names
    // Need to deal with null references
    if (s && s.length > 6)
@@ -115,6 +124,8 @@ function timeToString(time) {
    // strip seconds
    return str.substring(0, str.length-4);
 }
+
+/// ------------------------------- REACT ------------------------------------
 
 /// Display time as a React component
 /// Displayes two times (one with red flag) if they differ, otherwise only one
@@ -227,8 +238,11 @@ class TrainList extends Component {
                response.json().then(data => {
 
                   // JSON to Train objects
+                  // filter out null trains (ghosts who already went)
                   // List of trains, sorted by arrival/departure time.
-                  const tr = data.map( elem => new Train(elem, station) );
+                  const tr = data
+                     .map( elem => new Train(elem, station) )
+                     .filter( train => train.type );
                   tr.sort( (a,b) => { return a.time - b.time } );
 
                   // Update our view
@@ -269,7 +283,7 @@ class TrainList extends Component {
 
       <form className="Search-form" onSubmit={this.handleSubmit}>
          <h3>{localisation.search_text}</h3>
-         <input type="text" name="search" value={this.state.value} onChange={this.handleChange} />
+         <input type="search" name="search" value={this.state.value} onChange={this.handleChange} />
       </form>
 
       <div className="DirSelector">

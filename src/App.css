@@ -18,6 +18,14 @@
    color: red;
 }
 
+.Train-row {
+   color: black;
+}
+
+.Train-row-disabled {
+   color: grey;
+}
+
 button {
    border-radius: 2px;
    background-color: #4CAF50;

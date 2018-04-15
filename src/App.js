@@ -8,7 +8,8 @@ const localisation = {
    arrive_text: "Saapuu",
    search_text: "Hae aseman nimellä",
    departures_text: "Lähtevät",
-   arrivals_text: "Saapuvat"
+   arrivals_text: "Saapuvat",
+   cancelled_text: 'Peruutettu'
 };
 
 // Constants
@@ -122,7 +123,10 @@ function DisplayTime(props)
 {
    // checking equal on strings not on time (time isn't accurate)
    // invalid times aren't null, they are NaN
-   const lt = !isNaN(props.live.valueOf()) ? timeToString(props.live) : null;
+   // cancelled takes priority
+   const lt = props.cancelled
+      ? localisation.cancelled_text
+      : !isNaN(props.live.valueOf()) ? timeToString(props.live) : null;
    const st = timeToString(props.scheduled);
 
    return (
@@ -133,6 +137,25 @@ function DisplayTime(props)
          )}
          {st}
       </div>
+   );
+}
+
+/// React component to display an individual train inside the table
+/// @props train (a Train data structure)
+/// @return <tr> element containing the Train
+function DisplayTrain(props)
+{
+   const train = props.train;
+   const cancelled = train.cancelled;
+   return (
+      <tr className={cancelled ? 'Train-row-disabled' : 'Train-row'}>
+         <td key={String(train.number)+'number'}>{train.type} {train.number}</td>
+         <td key={String(train.number)+'start'}>{stationToLong(train.start)}</td>
+         <td key={String(train.number)+'end'}>{stationToLong(train.end)}</td>
+         <td key={String(train.number)+'time'}>
+            <DisplayTime live={train.live_time} scheduled={train.time} cancelled={train.cancelled} />
+         </td>
+      </tr>
    );
 }
 
@@ -222,22 +245,16 @@ class TrainList extends Component {
       e.preventDefault();
       console.log('departures was clicked');
 
-      if (this.direction !== 'depart')
-      {
-         this.direction = 'depart';
-         this.findStation(this.direction, this.search_value);
-      }
+      this.direction = 'depart';
+      this.findStation(this.direction, this.search_value);
    }
 
    handleArrivals(e) {
       e.preventDefault();
       console.log('arrivals was clicked');
 
-      if (this.direction !== 'arrive')
-      {
-         this.direction = 'arrive';
-         this.findStation(this.direction, this.search_value);
-      }
+      this.direction = 'arrive';
+      this.findStation(this.direction, this.search_value);
    }
 
    // @todo seems like generating unique indentifiers is hard
@@ -270,14 +287,7 @@ class TrainList extends Component {
          </thead>
          <tbody>
          {this.state.trains.map(train =>
-            <tr>
-               <td key={String(train.number)+'number'}>{train.type} {train.number}</td>
-               <td key={String(train.number)+'start'}>{stationToLong(train.start)}</td>
-               <td key={String(train.number)+'end'}>{stationToLong(train.end)}</td>
-               <td key={String(train.number)+'time'}>
-                  <DisplayTime live={train.live_time} scheduled={train.time} />
-               </td>
-            </tr>
+               <DisplayTrain train={train} />
          )}
          </tbody>
       </table>

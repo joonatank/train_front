@@ -5,7 +5,8 @@ const localisation = {
    train_text: "Juna",
    depart_text: "Lähtoasema",
    going_text: "Pääteasema",
-   arrive_text: "Saapuu",
+   arrives_text: "Saapuu",
+   departs_text: "Lähtee",
    search_text: "Hae aseman nimellä",
    departures_text: "Lähtevät",
    arrivals_text: "Saapuvat",
@@ -267,7 +268,7 @@ class TrainList extends Component {
       <div className='TrainMain'>
 
       <form className="Search-form" onSubmit={this.handleSubmit}>
-         <p>{localisation.search_text}</p>
+         <h3>{localisation.search_text}</h3>
          <input type="text" name="search" value={this.state.value} onChange={this.handleChange} />
       </form>
 
@@ -284,11 +285,11 @@ class TrainList extends Component {
 
       <table className="Train-table">
          <thead>
-            <tr>
+            <tr className='Train-row-disabled'>
                <th>{localisation.train_text}</th>
                <th>{localisation.depart_text}</th>
                <th>{localisation.going_text}</th>
-               <th>{localisation.arrive_text}</th>
+               <th>{this.direction === 'depart' ? localisation.departs_text : localisation.arrives_text}</th>
             </tr>
          </thead>
          <tbody>
